@@ -40,7 +40,7 @@ from django.utils import encoding, timezone
 
 from helpdesk import settings
 from helpdesk.lib import safe_template_context, process_attachments
-from helpdesk.models import Queue, Ticket, TicketCC, FollowUp, IgnoreEmail
+from helpdesk.models import Queue, Ticket, TicketCC, FollowUp, IgnoreEmail, EmailMessage
 from django.contrib.auth.models import User
 
 import logging
@@ -400,6 +400,11 @@ def ticket_from_message(message, queue, logger):
             priority=priority,
         )
         logger.debug("Created new ticket %s-%s" % (t.queue.slug, t.id))
+
+    message_id = message.get('Message_ID', None)
+    if message_id:
+        message_id = decode_mail_headers(decodeUnknown(message.get_charset(), message_id))
+        EmailMessage.objects.create(message_id=message_id, ticket=t)
 
     if cc:
         # get list of currently CC'd emails

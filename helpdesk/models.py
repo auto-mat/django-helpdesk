@@ -493,6 +493,9 @@ class Ticket(models.Model):
         default=mk_secret,
     )
 
+    def get_references(self):
+        return [mail.message_id for mail in EmailMessage.objects.filter(ticket=self)]
+
     def send(self, roles, dont_send_to=None, **kwargs):
         """
         Send notifications to everyone interested in this ticket.
@@ -530,8 +533,17 @@ class Ticket(models.Model):
         def send(role, recipient):
             if recipient and recipient not in recipients and role in roles:
                 template, context = roles[role]
-                send_templated_mail(template, context, recipient, sender=self.queue.from_address, **kwargs)
+                msg_id = '<' + str(uuid.uuid4()) + '.' + str(self) + '.' + self.queue.from_address + '>'
+                send_templated_mail(
+                    template,
+                    context,
+                    recipient,
+                    sender=self.queue.from_address,
+                    headers={'References': ' '.join(self.get_references()),
+                             'Message-ID': msg_id},
+                    **kwargs)
                 recipients.add(recipient)
+                EmailMessage.objects.create(message_id=msg_id, ticket=self)
         send('submitter', self.submitter_email)
         send('new_ticket_cc', self.queue.new_ticket_cc)
         if self.assigned_to and self.assigned_to.usersettings_helpdesk.email_on_ticket_assign:
@@ -1359,6 +1371,23 @@ class IgnoreEmail(models.Model):
             return True
         else:
             return False
+
+
+class EmailMessage(models.Model):
+    """
+    Each message which is sent or recieved is stored.
+    """
+    ticket = models.ForeignKey(
+        Ticket,
+        on_delete=models.CASCADE,
+        verbose_name=_('Ticket'),
+    )
+
+    message_id = models.CharField(
+        _('Message-ID'),
+        max_length=255,
+        help_text=_('The Message-ID of the email message'),
+    )
 
 
 @python_2_unicode_compatible

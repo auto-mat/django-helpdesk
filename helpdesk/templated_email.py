@@ -13,6 +13,7 @@ def send_templated_mail(template_name,
                         recipients,
                         sender=None,
                         bcc=None,
+                        headers=None,
                         fail_silently=False,
                         files=None):
     """
@@ -91,7 +92,7 @@ def send_templated_mail(template_name,
 
     msg = EmailMultiAlternatives(subject_part, text_part,
                                  sender or settings.DEFAULT_FROM_EMAIL,
-                                 recipients, bcc=bcc)
+                                 recipients, bcc=bcc, headers=headers)
     msg.attach_alternative(html_part, "text/html")
 
     if files:
