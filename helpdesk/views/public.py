@@ -106,7 +106,12 @@ class CreateTicketIframeView(BaseCreateTicketView):
     @csrf_exempt
     @xframe_options_exempt
     def dispatch(self, *args, **kwargs):
-        return super().dispatch(*args, **kwargs)
+        response = super().dispatch(*args, **kwargs)
+        try:
+          del response['X-Frame-Options']
+        except KeyError:
+          pass
+        return response
 
     def form_valid(self, form):
         if super().form_valid(form).status_code == 302:
@@ -118,7 +123,12 @@ class SuccessIframeView(TemplateView):
 
     @xframe_options_exempt
     def dispatch(self, *args, **kwargs):
-        return super().dispatch(*args, **kwargs)
+        response = super().dispatch(*args, **kwargs)
+        try:
+          del response['X-Frame-Options']
+        except KeyError:
+          pass
+        return response
 
 
 class CreateTicketView(BaseCreateTicketView):
